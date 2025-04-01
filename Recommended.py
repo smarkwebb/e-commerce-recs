@@ -41,8 +41,15 @@ def build_history_table(pairs):
     return history
 
 
-def get_positive_entries():
-    pass
+def get_positive_entries(history):
+    positive_entries = 0
+
+    for index in history:
+        for element in history[index]:
+            if element == 1:
+                positive_entries += 1
+
+    return positive_entries
 
 
 def get_queries(path):
@@ -148,7 +155,7 @@ carts = convert_to_carts(queries)
 angles = compute_angles(history)
 
 # Output to user
-print(f"Positive entries: {get_positive_entries()}")
+print(f"Positive entries: {get_positive_entries(history)}")
 print(f"Average angle: {round(get_average_angle(angles), 2)}")
 
 for cart in carts:

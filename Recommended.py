@@ -62,6 +62,39 @@ def convert_to_carts(enquires):
     return carts
 
 
+def cart_output(cart):
+    output = ""
+
+    for item in cart:
+        output = output + item + " "
+
+    return output
+
+
+def find_item_match(angles, target):
+    min_angle = 10000
+    match_item = 0
+
+    for index in angles:
+        angle = index[2]
+
+        if angle < min_angle:
+            item1 = index[0]
+            item2 = index[1]
+
+            if str(item1) == target:
+                cur_item = item2
+            elif item2 == target:
+                cur_item == item1
+            else:
+                continue
+
+            min_angle = angle
+            match_item = cur_item
+
+    return [match_item, min_angle]
+
+
 def compute_angles(history_table):
     angles = []
 
@@ -102,15 +135,22 @@ def get_average_angle(angles):
 
 history = get_history("history.txt")
 pairs = convert_to_pairs(history)
-print(f"PAIRS {pairs}")
 history = build_history_table(pairs)
-print(f"HISTORY TABLE {history}")
 queries = get_queries("queries.txt")
-print(f"QUERIES: {queries}")
 carts = convert_to_carts(queries)
-print(f"CARTS {carts}")
 angles = compute_angles(history)
-print(f"ANGLES {angles}")
 
+# Output to user
 print(f"Positive entries: {get_positive_entries()}")
 print(f"Average angle: {get_average_angle(angles)}")
+
+for cart in carts:
+    print(f"Shopping cart: {cart_output(cart)}")
+
+    for item in cart:
+        match = find_item_match(angles, item)
+
+        if match[1] < 90:
+            print(f"Item: {item}; match: {match[0]}; angle: {match[1]}")
+        else:
+            print(f"Item: {item} no match")

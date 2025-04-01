@@ -71,9 +71,10 @@ def cart_output(cart):
     return output
 
 
-def find_item_match(angles, target):
+def find_item_match(angles, target, cart):
     min_angle = 10000
     match_item = 0
+    recommended = []
 
     for index in angles:
         angle = index[2]
@@ -82,20 +83,26 @@ def find_item_match(angles, target):
             item1 = index[0]
             item2 = index[1]
 
+            if item1 == item2:
+                continue
+
             if str(item1) == target:
                 cur_item = item2
-            elif item2 == target:
-                cur_item == item1
+            elif str(item2) == target:
+                cur_item = item1
             else:
+                continue
+
+            if str(cur_item) in cart:
                 continue
 
             min_angle = angle
             match_item = cur_item
 
-    return [match_item, min_angle]
+    return [match_item, min_angle, recommended]
 
 
-def compute_angles(history_table):
+def compute_angles(history):
     angles = []
 
     for key1 in history:
@@ -103,8 +110,8 @@ def compute_angles(history_table):
             if key1 == key2:
                 continue
 
-            vector1 = history_table[key1]
-            vector2 = history_table[key2]
+            vector1 = history[key1]
+            vector2 = history[key2]
 
             norm_vector1 = np.linalg.norm(vector1)
             norm_vector2 = np.linalg.norm(vector2)
@@ -142,15 +149,15 @@ angles = compute_angles(history)
 
 # Output to user
 print(f"Positive entries: {get_positive_entries()}")
-print(f"Average angle: {get_average_angle(angles)}")
+print(f"Average angle: {round(get_average_angle(angles), 2)}")
 
 for cart in carts:
     print(f"Shopping cart: {cart_output(cart)}")
 
     for item in cart:
-        match = find_item_match(angles, item)
+        match = find_item_match(angles, item, cart)
 
         if match[1] < 90:
-            print(f"Item: {item}; match: {match[0]}; angle: {match[1]}")
+            print(f"Item: {item}; match: {match[0]}; angle: {round(match[1], 2)}")
         else:
             print(f"Item: {item} no match")

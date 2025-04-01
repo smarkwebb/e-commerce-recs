@@ -1,36 +1,31 @@
-import numpy as np
 import math
+import numpy as np
 
 
-def read_history(path):
-    with open(path) as f:
-        raw = f.readlines()
-        pairs = []
+def get_history(path):
+    with open(path) as file:
+        history = file.readlines()
 
-        for element in raw:
-            pair = element.split()
-            pairs.append(pair)
-
-        return pairs
+    return history
 
 
-def read_queries(path):
-    with open(path) as f:
-        raw = f.readlines()
-        item_ids = []
+def convert_to_pairs(history):
+    pairs = []
 
-        for query in raw:
-            item_id = query.split()
-            item_ids.append(item_id)
+    for item in history:
+        pair = item.split()
+        pairs.append(pair)
 
-        return item_ids
+    return pairs
 
 
-def build_history(pairs):
-    header = pairs[0]
-    num_customers = int(header[0])
-    num_items = int(header[1])
+def build_history_table(pairs):
+    header_data = pairs[0]
     del pairs[0]
+
+    num_customers = int(header_data[0])
+    num_items = int(header_data[1])
+
     history = {}
 
     for item in range(1, num_items + 1):
@@ -46,40 +41,54 @@ def build_history(pairs):
     return history
 
 
-def compute_angles(history):
+def get_positive_entries():
+    pass
+
+
+def get_queries(path):
+    with open(path) as file:
+        queries = file.readlines()
+
+    return queries
+
+
+def convert_to_carts(enquires):
+    carts = []
+
+    for item in enquires:
+        cart = item.split()
+        carts.append(cart)
+
+    return carts
+
+
+def compute_angles(history_table):
     angles = []
 
     for key1 in history:
         for key2 in history:
-            v1 = history[key1]
-            v2 = history[key2]
+            if key1 == key2:
+                continue
 
-            if not np.array_equal(v1, v2):
-                norm_v1 = np.linalg.norm(v1)
-                norm_v2 = np.linalg.norm(v2)
+            vector1 = history_table[key1]
+            vector2 = history_table[key2]
 
-                if norm_v1 == 0 or norm_v2 == 0:
-                    continue
+            norm_vector1 = np.linalg.norm(vector1)
+            norm_vector2 = np.linalg.norm(vector2)
 
-                cos_theta = np.dot(v1, v2) / (norm_v1 * norm_v2)
-                cos_theta = max(-1, min(1, cos_theta))
-                theta = math.degrees(math.acos(cos_theta))
+            if norm_vector1 == 0 or norm_vector2 == 0:
+                continue
 
-                if theta != 0:
-                    angle = [key1, key2, theta]
-                    angles.append(angle)
+            dot_product = np.dot(vector1, vector2)
+            cos_theta = dot_product / (norm_vector1 * norm_vector2)
+            cos_theta = max(-1, min(1, cos_theta))
+            theta = math.degrees(math.acos(cos_theta))
+
+            if theta > 0:
+                angle = [key1, key2, theta]
+                angles.append(angle)
 
     return angles
-
-
-def get_positive_entries(history):
-    pos_entries = 0
-
-    for key in history:
-        if history[key].size > 0:
-            pos_entries += 1
-
-    return pos_entries
 
 
 def get_average_angle(angles):
@@ -91,18 +100,17 @@ def get_average_angle(angles):
     return sum / len(angles)
 
 
-# Reading the transaction history
-pairs = read_history("history.txt")
-history = build_history(pairs)
-pos_entries = get_positive_entries(history)
-
-# Precomputing item-to-item angles
+history = get_history("history.txt")
+pairs = convert_to_pairs(history)
+print(f"PAIRS {pairs}")
+history = build_history_table(pairs)
+print(f"HISTORY TABLE {history}")
+queries = get_queries("queries.txt")
+print(f"QUERIES: {queries}")
+carts = convert_to_carts(queries)
+print(f"CARTS {carts}")
 angles = compute_angles(history)
-average_angle = get_average_angle(angles)
+print(f"ANGLES {angles}")
 
-# Output
-print(f"Positive entries: {pos_entries}")
-print(f"Average angle: {average_angle:.2f}")
-
-queries = read_queries("queries.txt")
-print(queries)
+print(f"Positive entries: {get_positive_entries()}")
+print(f"Average angle: {get_average_angle(angles)}")

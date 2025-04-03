@@ -152,14 +152,33 @@ def sort_suggestions(suggestions):
     unique_suggestions = []
 
     for suggestion in suggestions:
-        if suggestion not in unique_suggestions:
+        item, angle = suggestion
+        in_unique = False
+        current_angle = 0
+
+        for unique_suggestion in unique_suggestions:
+            unique_item, unique_angle = unique_suggestion
+
+            if item == unique_item:
+                in_unique = True
+                current_item = unique_item
+                current_angle = unique_angle
+
+        if not in_unique:
             unique_suggestions.append(suggestion)
+            continue
+
+        if angle > current_angle:
+            for unique_suggestion in unique_suggestions:
+                unique_item, unique_angle = suggestion
+
+                if unique_item == current_item:
+                    unique_angle = current_angle
 
     return unique_suggestions
 
 
 def suggestion_output_format(all_suggestions):
-    all_suggestions.reverse()
     outputted_items = []
     string = ""
 
@@ -167,10 +186,9 @@ def suggestion_output_format(all_suggestions):
         item, angle = suggestion
 
         if item not in outputted_items:
-            if suggestion == suggestions[0]:
-                if angle < 90:
-                    string = string + str(item) + " "
-                    outputted_items.append(item)
+            if angle < 90:
+                string = string + str(item) + " "
+                outputted_items.append(item)
 
     return string
 
@@ -194,14 +212,11 @@ for current_cart in shopping_carts:
     for current_item in current_cart:
         suggestions = find_suggestions(items_angles, current_item, current_cart)
         suggestions = sort_suggestions(suggestions)
-
-        for suggestion in suggestions:
-            all_suggestions.append(suggestion)
-
         item, angle = suggestions[0]
 
         if angle < 90:
             print(f"Item: {current_item}; match {item}; angle: {angle:.2f}")
+            all_suggestions.append([item, angle])
         else:
             print(f"Item: {current_item} no match")
 

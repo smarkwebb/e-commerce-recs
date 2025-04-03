@@ -2,123 +2,53 @@ import math
 import numpy as np
 
 
-def get_history(path):
-    with open(path) as file:
-        history = file.readlines()
+def get_purchase_history(history_path):
+    with open(history_path) as file:
+        raw_data = file.readlines()
 
-    return history
+    summary = [item for item in raw_data[0].split()]
+    del raw_data[0]
+    purchase_history = raw_data
 
-
-def convert_to_pairs(history):
-    pairs = []
-
-    for item in history:
-        pair = item.split()
-        pairs.append(pair)
-
-    return pairs
+    return purchase_history, summary
 
 
-def build_history_table(pairs):
-    header_data = pairs[0]
-    del pairs[0]
+def process_history_pairs(purchase_history):
+    customers_items = []
 
-    num_customers = int(header_data[0])
-    num_items = int(header_data[1])
+    for element in purchase_history:
+        pair = element.split()
+        customers_items.append(pair)
 
-    history = {}
-
-    for item in range(1, num_items + 1):
-        history[item] = np.zeros(num_customers)
-
-    for pair in pairs:
-        customer_index = int(pair[0]) - 1
-        item_index = int(pair[1])
-
-        if item_index in history:
-            history[item_index][customer_index] = 1
-
-    return history
+    return customers_items
 
 
-def get_positive_entries(history):
-    positive_entries = 0
+def customer_item_vectors(customers_items, summary):
+    total_customers = int(summary[0])
+    total_items = int(summary[1])
 
-    for index in history:
-        for element in history[index]:
-            if element == 1:
-                positive_entries += 1
+    vectors_dict = {}
 
-    return positive_entries
+    for item in range(1, total_items + 1):
+        vectors_dict[item] = np.zeros(total_customers)
 
+    for customer, item in customers_items:
+        customer_index = int(customer) - 1
+        item_index = int(item)
 
-def get_queries(path):
-    with open(path) as file:
-        queries = file.readlines()
+        if item_index in vectors_dict:
+            vectors_dict[item_index][customer_index] = 1
 
-    return queries
-
-
-def convert_to_carts(enquires):
-    carts = []
-
-    for item in enquires:
-        cart = item.split()
-        carts.append(cart)
-
-    return carts
+    return vectors_dict
 
 
-def cart_output(cart):
-    output = ""
+def compute_angles(vectors_dict):
+    items_angles = []
 
-    for item in cart:
-        output = output + item + " "
-
-    return output
-
-
-def find_item_match(angles, target, cart):
-    min_angle = 10000
-    match_item = 0
-    recommended = []
-
-    for index in angles:
-        angle = index[2]
-
-        if angle < min_angle:
-            item1 = index[0]
-            item2 = index[1]
-
+    for item1, vector1 in vectors_dict.items():
+        for item2, vector2 in vectors_dict.items():
             if item1 == item2:
                 continue
-
-            if str(item1) == target:
-                cur_item = item2
-            elif str(item2) == target:
-                cur_item = item1
-            else:
-                continue
-
-            if str(cur_item) in cart:
-                continue
-
-            min_angle = angle
-            match_item = cur_item
-
-    return [match_item, min_angle, recommended]
-
-
-def compute_angles(history):
-    angles = []
-
-    for key1 in history:
-        for key2 in history:
-            if key1 == key2:
-                continue
-
-            vector1 = history[key1]
-            vector2 = history[key2]
 
             norm_vector1 = np.linalg.norm(vector1)
             norm_vector2 = np.linalg.norm(vector2)
@@ -131,40 +61,149 @@ def compute_angles(history):
             cos_theta = max(-1, min(1, cos_theta))
             theta = math.degrees(math.acos(cos_theta))
 
-            if theta > 0:
-                angle = [key1, key2, theta]
-                angles.append(angle)
+            if theta <= 0:
+                continue
 
-    return angles
+            items_angle_pair = [item1, item2, theta]
+            items_angles.append(items_angle_pair)
+
+    return items_angles
 
 
-def get_average_angle(angles):
+def get_queries(queries_path):
+    with open(queries_path) as file:
+        raw_data = file.readlines()
+
+    queries = raw_data
+
+    return queries
+
+
+def process_queries_carts(queries):
+    shopping_carts = []
+
+    for query in queries:
+        current_cart = query.split()
+        shopping_carts.append(current_cart)
+
+    return shopping_carts
+
+
+def get_positive_entries(vectors_dict):
+    positive_entries = 0
+
+    for item, vector in vectors_dict.items():
+        for element in vector:
+            if element == 1:
+                positive_entries += 1
+
+    return positive_entries
+
+
+def get_average_angle(items_angles):
     sum = 0
 
-    for angle in angles:
-        sum += angle[2]
+    for item1, item2, angle in items_angles:
+        sum += angle
 
-    return sum / len(angles)
+    average_angle = sum / len(items_angles)
+
+    return average_angle
 
 
-history = get_history("history.txt")
-pairs = convert_to_pairs(history)
-history = build_history_table(pairs)
+def cart_output_format(current_cart):
+    string = ""
+
+    for item in current_cart:
+        string = string + item + " "
+
+    return string
+
+
+def find_suggestions(items_angles, current_item, current_cart):
+    suggestions = []
+
+    for item1, item2, angle in items_angles:
+        unique_item = 0
+
+        if item1 == item2:
+            continue
+
+        if item1 == int(current_item):
+            unique_item = item2
+
+        if item2 == int(current_item):
+            unique_item = item1
+
+        if unique_item == 0:
+            continue
+
+        if str(unique_item) in current_cart:
+            continue
+
+        suggestions.append([unique_item, angle])
+
+    return suggestions
+
+
+def sort_suggestions(suggestions):
+    suggestions.sort(key=lambda x: x[1])
+
+    unique_suggestions = []
+
+    for suggestion in suggestions:
+        if suggestion not in unique_suggestions:
+            unique_suggestions.append(suggestion)
+
+    return unique_suggestions
+
+
+def suggestion_output_format(all_suggestions):
+    all_suggestions.reverse()
+    outputted_items = []
+    string = ""
+
+    for suggestion in all_suggestions:
+        item, angle = suggestion
+
+        if item not in outputted_items:
+            if suggestion == suggestions[0]:
+                if angle < 90:
+                    string = string + str(item) + " "
+                    outputted_items.append(item)
+
+    return string
+
+
+purchase_history, summary = get_purchase_history("history.txt")
+customers_items = process_history_pairs(purchase_history)
+vectors_dict = customer_item_vectors(customers_items, summary)
+items_angles = compute_angles(vectors_dict)
 queries = get_queries("queries.txt")
-carts = convert_to_carts(queries)
-angles = compute_angles(history)
+shopping_carts = process_queries_carts(queries)
+positive_entries = get_positive_entries(vectors_dict)
+average_angle = get_average_angle(items_angles)
 
-# Output to user
-print(f"Positive entries: {get_positive_entries(history)}")
-print(f"Average angle: {round(get_average_angle(angles), 2)}")
+print("Positive entries:", positive_entries)
+print("Average angle:", round(average_angle, 2))
 
-for cart in carts:
-    print(f"Shopping cart: {cart_output(cart)}")
+for current_cart in shopping_carts:
+    print("Shopping cart:", cart_output_format(current_cart))
+    all_suggestions = []
 
-    for item in cart:
-        match = find_item_match(angles, item, cart)
+    for current_item in current_cart:
+        suggestions = find_suggestions(items_angles, current_item, current_cart)
+        suggestions = sort_suggestions(suggestions)
 
-        if match[1] < 90:
-            print(f"Item: {item}; match: {match[0]}; angle: {round(match[1], 2)}")
+        for suggestion in suggestions:
+            all_suggestions.append(suggestion)
+
+        item, angle = suggestions[0]
+
+        if angle < 90:
+            print(f"Item: {current_item}; match {item}; angle: {angle:.2f}")
         else:
-            print(f"Item: {item} no match")
+            print(f"Item: {current_item} no match")
+
+    all_suggestions = sort_suggestions(all_suggestions)
+    print(f"Recommend: {suggestion_output_format(all_suggestions)}")
